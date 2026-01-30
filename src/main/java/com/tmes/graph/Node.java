@@ -18,6 +18,18 @@ public class Node {
         Edge newEdge = new Edge(this, destination, weight);
         this.outgoingEdges.add(newEdge);
     }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Node node = (Node) o;
+        return id == node.id; // Equality based on unique ID
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
 
     public List<Edge> getEdges() {
         return outgoingEdges;
