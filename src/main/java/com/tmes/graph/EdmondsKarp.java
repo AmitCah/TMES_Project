@@ -143,4 +143,18 @@ public class EdmondsKarp {
         }
         return visited;
     }
+    public static int calculateMinCutHash(Collection<Edge> minCutEdges) {
+        int q = 0;
+        for (Edge edge : minCutEdges) {
+            String sourceData = edge.getSource().getData();
+            String destData = edge.getDestination().getData();
+            int edgeWeight = 0;
+            int minLength = Math.min(sourceData.length(), destData.length());
+            for (int i = 0; i < minLength; i++) {
+                edgeWeight += sourceData.charAt(i) ^ destData.charAt(i);
+            }
+            q += edgeWeight;
+        }
+        return q;
+    }
 }

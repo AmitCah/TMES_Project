@@ -9,12 +9,12 @@ import java.io.IOException;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("=== TMES Real Image Test ===");
 
         try {
             // --- Step 0: Load Image ---
-            String filename = "test_image.png"; // MAKE SURE THIS FILE EXISTS IN PROJECT ROOT
+            String filename = "test_image.jpg"; // MAKE SURE THIS FILE EXISTS IN PROJECT ROOT
             File imgFile = new File(filename);
 
             if (!imgFile.exists()) {
@@ -36,7 +36,7 @@ public class Main {
 
 
             // --- Step 1: Graph & Keys ---
-            String password = "MySecurePassword2026!";
+            String password = "MySecurePass026!";
             System.out.println("[1] Generating Keys from password: " + password);
 
             // Build Graph
@@ -46,15 +46,15 @@ public class Main {
             // Filter Topology
             TarjanSCC tarjan = new TarjanSCC(graph);
             List<Node> largestSCC = TarjanSCC.getLargestSCC(tarjan.run());
-            Graph coreGraph = createSubgraph(largestSCC);
+            Graph coreGraph = GraphBuilder.createSubgraph(largestSCC);
 
             // Calculate Keys
-            Node source = coreGraph.getNodes().get(0);
-            Node sink = coreGraph.getNodes().get(coreGraph.getNodes().size() - 1);
+            Node source = coreGraph.getNodes().getFirst();
+            Node sink = coreGraph.getNodes().getLast();
             FlowResult flow = EdmondsKarp.compute(coreGraph, source, sink);
 
             int P = flow.maxFlow;
-            int Q = calculateQ(flow.minCutEdges);
+            int Q = EdmondsKarp.calculateMinCutHash(flow.minCutEdges);
             int K = (largestSCC.size() + P) % 20 + 5; // Iterations
 
             System.out.println("    Keys: P=" + P + ", Q=" + Q + ", K=" + K);
@@ -99,28 +99,5 @@ public class Main {
         int y = (h - dim) / 2;
 
         return img.getSubimage(x, y, dim, dim);
-    }
-
-    private static int calculateQ(List<Edge> edges) {
-        int sum = 0;
-        for (Edge e : edges) sum += e.getWeight();
-        return (sum == 0) ? 1 : sum;
-    }
-
-    // Your safe version of createSubgraph
-    private static Graph createSubgraph(List<Node> validNodes) {
-        Graph g = new Graph();
-        g.getNodes().addAll(validNodes);
-        java.util.Set<Node> validSet = new java.util.HashSet<>(validNodes);
-        for (Node n : g.getNodes()) {
-            java.util.Iterator<Edge> it = n.getEdges().iterator();
-            while (it.hasNext()) {
-                Edge e = it.next();
-                if (!validSet.contains(e.getDestination())) {
-                    it.remove();
-                }
-            }
-        }
-        return g;
     }
 }

@@ -1,8 +1,6 @@
 package com.tmes.graph;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 
 public class GraphBuilder {
 
@@ -87,19 +85,18 @@ public class GraphBuilder {
         }
     }
     public static Graph createSubgraph(List<Node> validNodes) {
-        Graph newGraph = new Graph();
-        HashSet<Node> nodeSet = new HashSet<>(validNodes);
-        for(Node node : validNodes)
-        {
-            ListIterator<Edge> iterator = node.getEdges().listIterator();
-            while(iterator.hasNext())
-            {
-                Edge curr = iterator.next();
-                if(!nodeSet.contains(curr.getDestination()))
-                    iterator.remove();
+        Graph g = new Graph();
+        g.getNodes().addAll(validNodes);
+        java.util.Set<Node> validSet = new java.util.HashSet<>(validNodes);
+        for (Node n : g.getNodes()) {
+            java.util.Iterator<Edge> it = n.getEdges().iterator();
+            while (it.hasNext()) {
+                Edge e = it.next();
+                if (!validSet.contains(e.getDestination())) {
+                    it.remove();
+                }
             }
-            newGraph.getNodes().add(node);
         }
-        return newGraph;
+        return g;
     }
 }
