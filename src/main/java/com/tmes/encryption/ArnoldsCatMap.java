@@ -57,4 +57,11 @@ public class ArnoldsCatMap {
 
         return new int[]{xOld, yOld};
     }
+    public int getP() {
+        return p;
+    }
+
+    public int getQ() {
+        return q;
+    }
 }
