@@ -8,9 +8,16 @@ public class TopologyOptimizer {
     private static final int MAX_ITERATIONS = 10;
 
     // Security Thresholds (Tweak these based on your image size needs)
-    private static final int TARGET_P = 50;
-    private static final int TARGET_Q = 1000;
-    private static final int TARGET_K = 10;
+    private static final int TARGET_P = 300;
+    //300 mathematically forces the graph to either have a minimum of two parallel paths of data flowing from source to sink,
+    //or one heavily upgraded bottleneck.
+    private static final int TARGET_Q = 150;
+    //150 is a realistic but strict threshold. It forces the optimizer to actively build "bypass" edges (using Action X)
+    //if the natural bottleneck characters are too mathematically similar.
+    private static final int TARGET_K = 18;
+    //By targeting 18, you force the optimizer's "Modulo Shift" action to slightly bump P until the remainder pushes K into the
+    //upper quartile of its possible range (18 to 24).
+    //This guarantees aggressive scrambling without causing infinite loops trying to hit an impossible number.
 
     public static Graph optimize(Graph graph, Node source, Node sink, int sccSize) {
         System.out.println("\n--- Starting Topology Optimization ---");

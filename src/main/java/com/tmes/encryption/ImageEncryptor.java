@@ -8,74 +8,92 @@ public class ImageEncryptor {
     public static BufferedImage encrypt(BufferedImage originalImage, ArnoldsCatMap map, int k) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
-        BufferedImage currentImage = deepCopy(originalImage);
+
+        // 1. Create exactly TWO images once (Ping-Pong buffers)
+        BufferedImage imgA = deepCopy(originalImage);
+        BufferedImage imgB = new BufferedImage(width, height, originalImage.getType());
+
+        // 2. Extract their raw 1D arrays for direct memory access
+        int[] bufferA = ((java.awt.image.DataBufferInt) imgA.getRaster().getDataBuffer()).getData();
+        int[] bufferB = ((java.awt.image.DataBufferInt) imgB.getRaster().getDataBuffer()).getData();
+
+        int[] currentBuffer = bufferA;
+        int[] nextBuffer = bufferB;
 
         for (int i = 0; i < k; i++) {
-            BufferedImage nextImage = new BufferedImage(width, height, originalImage.getType());
-
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    int rgb = currentImage.getRGB(x, y);
+                    int flatIndex = y * width + x;
+                    int rgb = currentBuffer[flatIndex];
 
-                    // 1. Separate Alpha and Color
                     int alpha = rgb & 0xFF000000;
                     int rawColor = rgb & 0x00FFFFFF;
 
-                    // 2. Diffusion: XOR the color with a deterministic chaotic mask
+                    // Diffusion phase
                     int mask = generateMask(x, y, map.getP(), map.getQ(), i);
                     int scrambledColor = rawColor ^ mask;
 
-                    // 3. Confusion: Move the pixel
+                    // Confusion phase (move the pixel)
                     int[] newPos = map.encryptPixel(x, y);
+                    int newFlatIndex = newPos[1] * width + newPos[0];
 
-                    // Place it in the new image
-                    nextImage.setRGB(newPos[0], newPos[1], alpha | scrambledColor);
+                    // Write directly to the destination array
+                    nextBuffer[newFlatIndex] = (alpha | scrambledColor);
                 }
             }
-            currentImage = nextImage;
+            // 3. Swap the pointers for the next iteration
+            int[] temp = currentBuffer;
+            currentBuffer = nextBuffer;
+            nextBuffer = temp;
         }
-        return currentImage;
+
+        return (k % 2 == 0) ? imgA : imgB;
     }
 
     public static BufferedImage decrypt(BufferedImage encryptedImage, ArnoldsCatMap map, int k) {
         int width = encryptedImage.getWidth();
         int height = encryptedImage.getHeight();
-        BufferedImage currentImage = deepCopy(encryptedImage);
 
-        // IMPORTANT: Decryption must reverse the iterations backward!
+        BufferedImage imgA = deepCopy(encryptedImage);
+        BufferedImage imgB = new BufferedImage(width, height, encryptedImage.getType());
+
+        int[] bufferA = ((java.awt.image.DataBufferInt) imgA.getRaster().getDataBuffer()).getData();
+        int[] bufferB = ((java.awt.image.DataBufferInt) imgB.getRaster().getDataBuffer()).getData();
+
+        int[] currentBuffer = bufferA;
+        int[] nextBuffer = bufferB;
+
+        // Loop runs backward to unroll the diffusion
         for (int i = k - 1; i >= 0; i--) {
-            BufferedImage nextImage = new BufferedImage(width, height, encryptedImage.getType());
-
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    int rgb = currentImage.getRGB(x, y);
+                    int flatIndex = y * width + x;
+                    int rgb = currentBuffer[flatIndex];
 
-                    // 1. Confusion Inverse: Find where it came from
+                    // Find original position
                     int[] oldPos = map.decryptPixel(x, y);
+                    int oldFlatIndex = oldPos[1] * width + oldPos[0];
 
-                    // 2. Separate Alpha and Color
                     int alpha = rgb & 0xFF000000;
                     int scrambledColor = rgb & 0x00FFFFFF;
 
-                    // 3. Diffusion Inverse: Unmask using the original coordinates
+                    // Reverse the mask using the old coordinates
                     int mask = generateMask(oldPos[0], oldPos[1], map.getP(), map.getQ(), i);
                     int restoredColor = scrambledColor ^ mask;
 
-                    // 4. Place it back
-                    nextImage.setRGB(oldPos[0], oldPos[1], alpha | restoredColor);
+                    nextBuffer[oldFlatIndex] = (alpha | restoredColor);
                 }
             }
-            currentImage = nextImage;
+            int[] temp = currentBuffer;
+            currentBuffer = nextBuffer;
+            nextBuffer = temp;
         }
-        return currentImage;
+
+        return (k % 2 == 0) ? imgA : imgB;
     }
 
-    // Generates a chaotic, reversible mask based on the topology keys and coordinates
     private static int generateMask(int x, int y, int p, int q, int iteration) {
-        // Adding +1 prevents multiplication by zero at coordinates (0,0) or iteration 0
         int hash = (p * (x + 1) * 31) ^ (q * (y + 1) * 17) ^ ((iteration + 1) * p * q * 73);
-
-        // Ensure we only return a 24-bit color mask (ignores the alpha channel)
         return hash & 0x00FFFFFF;
     }
 

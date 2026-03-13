@@ -27,7 +27,7 @@ public class Main {
         String choice = scanner.nextLine().trim();
 
         System.out.print("Enter your password: ");
-        String password = "PASSWORD1";
+        String password = scanner.nextLine();
 
         try {
             if (choice.equals("1")) {
@@ -47,7 +47,7 @@ public class Main {
 
     private static void runEncryption(String password) throws IOException {
         System.out.println("\n[ENCRYPTION MODE]");
-        File imgFile = new File("test_image.jpg");
+        File imgFile = new File("test_image.png");
         if (!imgFile.exists()) {
             System.err.println("ERROR: 'test_image.jpg' not found in the project root.");
             return;
@@ -85,7 +85,11 @@ public class Main {
         }
 
         System.out.println("1. Loading encrypted image...");
-        BufferedImage encryptedImage = ImageIO.read(imgFile);
+        BufferedImage rawEncryptedImage = ImageIO.read(imgFile);
+
+        // THIS IS THE FIX: Convert the byte-backed image to an int-backed image
+        BufferedImage encryptedImage = forceOpaqueRGB(rawEncryptedImage);
+
         int N = encryptedImage.getWidth();
 
         System.out.println("2. Deriving keys from password...");
@@ -155,4 +159,5 @@ public class Main {
         g2d.dispose();
         return rgbImage;
     }
+
 }
