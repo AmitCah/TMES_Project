@@ -2,7 +2,10 @@ package com.tmes.main;
 
 import com.tmes.graph.*;
 import com.tmes.encryption.*;
+import com.tmes.gui.TMESGui;
+
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -13,18 +16,27 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("=== TMES Interactive Mode ===");
-
         System.out.println("\n[Security Policy]");
         System.out.println("- Passwords must be at least 8 characters long.");
         System.out.println("- Passwords must be in English characters.");
-        System.out.println("- Passwords must contain a diverse mix of characters to ensure a secure topology (avoid repeating patterns like 'AAAA').\n");
+        System.out.println("- Passwords must contain a diverse mix of characters to ensure a secure topology.\n");
 
         System.out.println("Select operation:");
-        System.out.println("1. Encrypt 'test_image.jpg'");
-        System.out.println("2. Decrypt 'encrypted_result.png'");
-        System.out.print("Choice (1 or 2): ");
+        System.out.println("1. Run CLI Encryption");
+        System.out.println("2. Run CLI Decryption");
+        System.out.println("3. Launch Graphic User Interface (GUI)");
+        System.out.print("Choice (1, 2, or 3): ");
 
         String choice = scanner.nextLine().trim();
+
+        if (choice.equals("3")) {
+            System.out.println("Launching GUI...");
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) {}
+            SwingUtilities.invokeLater(() -> new TMESGui().setVisible(true));
+            return; // Exit the CLI thread
+        }
 
         System.out.print("Enter your password: ");
         String password = scanner.nextLine();
@@ -35,7 +47,7 @@ public class Main {
             } else if (choice.equals("2")) {
                 runDecryption(password);
             } else {
-                System.out.println("Invalid choice. Please run the program again and select 1 or 2.");
+                System.out.println("Invalid choice. Please run the program again.");
             }
         } catch (Exception e) {
             System.err.println("An error occurred during execution:");
@@ -49,7 +61,7 @@ public class Main {
         System.out.println("\n[ENCRYPTION MODE]");
         File imgFile = new File("test_image.png");
         if (!imgFile.exists()) {
-            System.err.println("ERROR: 'test_image.jpg' not found in the project root.");
+            System.err.println("ERROR: 'test_image.png' not found in the project root.");
             return;
         }
 
@@ -59,7 +71,7 @@ public class Main {
         BufferedImage sourceImage = padToSquare(safeImage);
         int N = sourceImage.getWidth();
         if (password.length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters long to generate sufficient topological complexity.");
+            throw new IllegalArgumentException("Password must be at least 8 characters long.");
         }
         System.out.println("2. Deriving keys from password...");
         int[] keys = deriveKeys(password);
@@ -80,16 +92,13 @@ public class Main {
         System.out.println("\n[DECRYPTION MODE]");
         File imgFile = new File("encrypted_result.png");
         if (!imgFile.exists()) {
-            System.err.println("ERROR: 'encrypted_result.png' not found. Encrypt an image first.");
+            System.err.println("ERROR: 'encrypted_result.png' not found.");
             return;
         }
 
         System.out.println("1. Loading encrypted image...");
         BufferedImage rawEncryptedImage = ImageIO.read(imgFile);
-
-        // THIS IS THE FIX: Convert the byte-backed image to an int-backed image
         BufferedImage encryptedImage = forceOpaqueRGB(rawEncryptedImage);
-
         int N = encryptedImage.getWidth();
 
         System.out.println("2. Deriving keys from password...");
@@ -107,25 +116,33 @@ public class Main {
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
     }
 
-    // Helper method to simulate a fresh key derivation from a password
-    private static int[] deriveKeys(String password) {
+    // --- NOW PUBLIC UTILITY METHODS ---
+
+    public static int[] deriveKeys(String password) {
         Graph graph = GraphBuilder.buildBaseLayer(password, 4);
         GraphBuilder.addShortcutLayer(graph);
 
         TarjanSCC tarjan = new TarjanSCC(graph);
-        List<Node> largestSCC = TarjanSCC.getLargestSCC(tarjan.run());
+        List<List<Node>> allSccs = tarjan.run();
+        List<Node> largestSCC = TarjanSCC.getLargestSCC(allSccs);
+
         if (largestSCC.size() < 2) {
-            throw new RuntimeException("Cryptographic Exception: The provided password lacks the structural complexity required to generate a secure encryption key. Please include a wider variety of unique characters, numbers, or symbols.");        }
-        Graph coreGraph = GraphBuilder.createSubgraph(largestSCC);
+            throw new RuntimeException("Cryptographic Exception: The provided password lacks structural complexity.");
+        }
 
-        Node source = coreGraph.getNodes().getFirst();
-        Node sink = coreGraph.getNodes().getLast();
+        Node source = largestSCC.getFirst();
+        Node sink = largestSCC.getLast();
 
-        // Run Optimization
-        coreGraph = TopologyOptimizer.optimize(coreGraph, source, sink, largestSCC.size());
+        List<List<Node>> disconnectedSccs = new java.util.ArrayList<>();
+        for (List<Node> scc : allSccs) {
+            if (scc != largestSCC) {
+                disconnectedSccs.add(scc);
+            }
+        }
 
-        // Extract Final Keys
-        FlowResult flow = EdmondsKarp.compute(coreGraph, source, sink);
+        graph = TopologyOptimizer.optimize(graph, source, sink, largestSCC.size(), disconnectedSccs);
+
+        FlowResult flow = EdmondsKarp.compute(graph, source, sink);
         int P = flow.maxFlow;
         int Q = EdmondsKarp.calculateMinCutHash(flow.minCutEdges);
         int K = (largestSCC.size() + P) % 20 + 5;
@@ -133,8 +150,7 @@ public class Main {
         return new int[]{P, Q, K};
     }
 
-    // Point 3: Pad to square to prevent data loss
-    private static BufferedImage padToSquare(BufferedImage img) {
+    public static BufferedImage padToSquare(BufferedImage img) {
         int w = img.getWidth();
         int h = img.getHeight();
         int maxDim = Math.max(w, h);
@@ -151,13 +167,11 @@ public class Main {
         return squareImg;
     }
 
-    // Point 4: Force Opaque RGB to prevent alpha channel corruption
-    private static BufferedImage forceOpaqueRGB(BufferedImage img) {
+    public static BufferedImage forceOpaqueRGB(BufferedImage img) {
         BufferedImage rgbImage = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
         java.awt.Graphics2D g2d = rgbImage.createGraphics();
         g2d.drawImage(img, 0, 0, java.awt.Color.BLACK, null);
         g2d.dispose();
         return rgbImage;
     }
-
 }
