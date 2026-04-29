@@ -143,8 +143,8 @@ public class Main {
         graph = TopologyOptimizer.optimize(graph, source, sink, largestSCC.size(), disconnectedSccs);
 
         FlowResult flow = EdmondsKarp.compute(graph, source, sink);
-        int P = flow.maxFlow;
-        int Q = EdmondsKarp.calculateMinCutHash(flow.minCutEdges);
+        int P = flow.getMaxFlow();
+        int Q = EdmondsKarp.calculateMinCutHash(flow.getMinCutEdges());
         int K = (largestSCC.size() + P) % 20 + 5;
 
         return new int[]{P, Q, K};

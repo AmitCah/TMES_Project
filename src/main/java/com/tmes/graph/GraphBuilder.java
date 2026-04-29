@@ -2,26 +2,21 @@ package com.tmes.graph;
 
 import java.util.List;
 
+/**
+ * A static utility class responsible for constructing the De Bruijn-inspired graph topology.
+ * It builds the foundational structure and applies complex shortcut edges to ensure
+ * cryptographic confusion properties based on the user's password.
+ */
 public class GraphBuilder {
 
-    /**
-     * Builds the initial De Bruijn graph from the password.
-     * @param password The user's input string.
-     * @param k The length of each K-mer (node content).
-     * @return A constructed Graph object.
-     */
     public static Graph buildBaseLayer(String password, int k) {
         Graph graph = getGraph(password, k);
-
-        // 2. Connect sequential overlaps
-        // In a basic password chain, Node i always connects to Node i+1
         List<Node> nodes = graph.getNodes();
+
+        // Connect nodes sequentially to ensure a continuous baseline flow before optimization.
         for (int i = 0; i < nodes.size() - 1; i++) {
             Node current = nodes.get(i);
             Node next = nodes.get(i + 1);
-
-            // Default weight can be 1 or determined by ASCII.
-            // For now, let's use 1 as a placeholder.
             current.addEdge(next, 1);
         }
         return graph;
@@ -30,73 +25,43 @@ public class GraphBuilder {
     private static Graph getGraph(String password, int k) {
         Graph graph = new Graph();
 
-        // Validation: Password must be at least length k
-        if (password.length() < k) {
-            throw new IllegalArgumentException("Password too short for k=" + k);
+        // Strict validation: Prevent StringIndexOutOfBoundsException during K-mer extraction or math logic later.
+        if (k < 2 || password.length() < k) {
+            throw new IllegalArgumentException("Invalid input: password too short or k is strictly less than 2.");
         }
 
-        // 1. Create all nodes (K-mers)
-        // If password is "apple" (len 5) and k=3:
-        // i=0 -> "app"
-        // i=1 -> "ppl"
-        // i=2 -> "ple"
-        // Loop runs until i <= 5-3 (2)
         for (int i = 0; i <= password.length() - k; i++) {
             String sub = password.substring(i, i + k);
             graph.createNode(sub);
         }
         return graph;
     }
-    /**
-     * Layer 2: Adds deterministic "jump" edges to break linearity.
-     * Formula: Target = (ASCII(C1) * ASCII(C2) + Index) % N
-     */
+
     public static void addShortcutLayer(Graph graph) {
         List<Node> nodes = graph.getNodes();
         int N = nodes.size();
 
         for (Node current : nodes) {
             String kmer = current.getData();
-
-            // Safety check: ensure kmer has at least 2 chars
-            if (kmer.length() < 2) continue;
-
             char c1 = kmer.charAt(0);
             char c2 = kmer.charAt(1);
             int index = current.getId();
 
-            // The Project Formula
+            // The Project Formula: Creates a deterministic but chaotic jump.
+            // We use modulo N to ensure the target index safely wraps around the graph's bounds.
             long targetIndexLong = ((long) c1 * c2 + index) % N;
             int targetIndex = (int) targetIndexLong;
 
-            // Prevent self-loops if you want (optional, but good for flow networks)
+            // Prevent self-loops to keep the flow network clean and meaningful.
             if (targetIndex != index) {
                 Node targetNode = nodes.get(targetIndex);
 
-                // We need a weight (capacity) for this edge.
-                // Let's derive it from the chars so it's deterministic too.
-                // Example: (c1 + c2) to keep it strictly data-dependent.
+                // Capacity is derived deterministically from the ASCII values.
                 int weight = (c1 + c2);
-
                 current.addEdge(targetNode, weight);
                 System.out.println("Shortcut added: " + current.getData() + " -> "
                         + targetNode.getData() + " (Target Idx: " + targetIndex + ")");
             }
         }
-    }
-    public static Graph createSubgraph(List<Node> validNodes) {
-        Graph g = new Graph();
-        g.getNodes().addAll(validNodes);
-        java.util.Set<Node> validSet = new java.util.HashSet<>(validNodes);
-        for (Node n : g.getNodes()) {
-            java.util.Iterator<Edge> it = n.getEdges().iterator();
-            while (it.hasNext()) {
-                Edge e = it.next();
-                if (!validSet.contains(e.getDestination())) {
-                    it.remove();
-                }
-            }
-        }
-        return g;
     }
 }
