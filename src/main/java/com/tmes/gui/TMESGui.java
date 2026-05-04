@@ -2,6 +2,7 @@ package com.tmes.gui;
 
 import com.tmes.encryption.ArnoldsCatMap;
 import com.tmes.encryption.ImageEncryptor;
+import com.tmes.utils.PasswordGen;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -53,6 +54,15 @@ public class TMESGui extends JFrame {
         JButton btnDecrypt = new JButton("Decrypt");
         controlPanel.add(btnEncrypt);
         controlPanel.add(btnDecrypt);
+
+        // --- DEBUG: Auto-fill Password ---
+        JButton btnDebugPass = new JButton("Gen Pass");
+        controlPanel.add(btnDebugPass);
+
+        btnDebugPass.addActionListener(e -> {
+            // Generate a 12-character password and inject it into the text box
+            passwordField.setText(PasswordGen.genPassword(12));
+        });
 
         add(controlPanel, BorderLayout.NORTH);
 

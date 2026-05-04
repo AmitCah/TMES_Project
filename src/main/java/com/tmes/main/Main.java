@@ -12,7 +12,20 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * The central orchestrator and entry point for the Topological Multimedia Encryption System (TMES).
+ * This class routes the user to either the Command Line Interface (CLI) or the Graphical User Interface (GUI).
+ * It also serves as the main coordinator for the cryptographic pipeline, connecting the graph topology
+ * generation, key derivation, and image processing modules.
+ */
 public class Main {
+
+    /**
+     * The main execution thread. Presents an interactive console menu enforcing security policies
+     * and routes the application flow based on user selection.
+     *
+     * @param args Command line arguments (unused).
+     */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("=== TMES Interactive Mode ===");
@@ -32,8 +45,10 @@ public class Main {
         if (choice.equals("3")) {
             System.out.println("Launching GUI...");
             try {
+                // Attempts to match the GUI's visual style to the host operating system.
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {}
+            // Hands off execution to the Swing Event Dispatch Thread (EDT).
             SwingUtilities.invokeLater(() -> new TMESGui().setVisible(true));
             return;
         }
@@ -57,6 +72,14 @@ public class Main {
         }
     }
 
+    /**
+     * Coordinates the full encryption sequence in CLI mode.
+     * Loads the target image, sanitizes its format, derives cryptographic keys from the password,
+     * and passes the data to the encryption engine.
+     *
+     * @param password The user-provided string used to generate the graph topology.
+     * @throws IOException If the target image file cannot be read or written.
+     */
     private static void runEncryption(String password) throws IOException {
         System.out.println("\n[ENCRYPTION MODE]");
         File imgFile = new File("test_image.png");
@@ -67,12 +90,16 @@ public class Main {
 
         System.out.println("1. Loading, sanitizing, and padding image...");
         BufferedImage rawImage = ImageIO.read(imgFile);
+
+        // Sanitize the image format before passing it to the mathematical engine.
         BufferedImage safeImage = forceOpaqueRGB(rawImage);
         BufferedImage sourceImage = padToSquare(safeImage);
         int N = sourceImage.getWidth();
+
         if (password.length() < 8) {
             throw new IllegalArgumentException("Password must be at least 8 characters long.");
         }
+
         System.out.println("2. Deriving keys from password...");
         int[] keys = deriveKeys(password);
         System.out.println("   -> Keys: P=" + keys[0] + ", Q=" + keys[1] + ", K=" + keys[2]);
@@ -88,6 +115,14 @@ public class Main {
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
     }
 
+    /**
+     * Coordinates the full decryption sequence in CLI mode.
+     * Reads the ciphertext image, re-derives the exact keys from the password,
+     * and runs the encryption engine in reverse.
+     *
+     * @param password The user-provided string used to regenerate the graph topology.
+     * @throws IOException If the encrypted image file cannot be read or written.
+     */
     private static void runDecryption(String password) throws IOException {
         System.out.println("\n[DECRYPTION MODE]");
         File imgFile = new File("encrypted_result.png");
@@ -116,6 +151,15 @@ public class Main {
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
     }
 
+    /**
+     * Translates a user password into actionable cryptographic parameters (P, Q, and K).
+     * Builds a De Bruijn-inspired graph, isolates the most robust Strongly Connected Component (SCC),
+     * optimizes the topology, and calculates network flow metrics.
+     *
+     * @param password The user's raw text password.
+     * @return An integer array containing exactly three elements: [P, Q, K].
+     * @throws RuntimeException If the password creates a graph too weak to form a valid SCC.
+     */
     public static int[] deriveKeys(String password) {
         Graph graph = GraphBuilder.buildBaseLayer(password, 4);
         GraphBuilder.addShortcutLayer(graph);
@@ -128,7 +172,6 @@ public class Main {
             throw new RuntimeException("Cryptographic Exception: The provided password lacks structural complexity.");
         }
 
-        // FIXED: Replaced Java 21 methods with backwards-compatible index access
         Node source = largestSCC.get(0);
         Node sink = largestSCC.get(largestSCC.size() - 1);
 
@@ -149,6 +192,14 @@ public class Main {
         return new int[]{P, Q, K};
     }
 
+    /**
+     * Ensures an image is a perfect square, which is a strict mathematical requirement
+     * for the Arnold's Cat Map transformation. If the image is rectangular, it creates
+     * a square boundary based on the longest dimension and centers the original image inside it.
+     *
+     * @param img The original, potentially rectangular BufferedImage.
+     * @return A perfectly square BufferedImage containing the original data centered.
+     */
     public static BufferedImage padToSquare(BufferedImage img) {
         int w = img.getWidth();
         int h = img.getHeight();
@@ -166,6 +217,14 @@ public class Main {
         return squareImg;
     }
 
+    /**
+     * Strips the Alpha (transparency) channel from an image.
+     * Transparent pixels can cause XOR masking algorithms to output invisible data,
+     * leading to irreversible data loss during decryption. This forces a solid RGB background.
+     *
+     * @param img The raw image loaded from the file system.
+     * @return An opaque BufferedImage strictly containing standard RGB data.
+     */
     public static BufferedImage forceOpaqueRGB(BufferedImage img) {
         BufferedImage rgbImage = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
         java.awt.Graphics2D g2d = rgbImage.createGraphics();
