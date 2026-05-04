@@ -2,7 +2,6 @@ package com.tmes.gui;
 
 import com.tmes.encryption.ArnoldsCatMap;
 import com.tmes.encryption.ImageEncryptor;
-import com.tmes.graph.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -13,8 +12,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.List;
 
+/**
+ * The graphical user interface for the Topological Multimedia Encryption System.
+ * Manages user inputs, displays visual feedback (images), and redirects system logs
+ * to a built-in text console. All heavy cryptography runs on separate background threads
+ * to prevent the UI from freezing.
+ */
 public class TMESGui extends JFrame {
 
     private File selectedInputFile;
@@ -22,6 +26,10 @@ public class TMESGui extends JFrame {
     private JTextArea logArea;
     private JTextField passwordField;
 
+    /**
+     * Initializes the main application window, configures layout constraints,
+     * and binds action listeners to user interaction events.
+     */
     public TMESGui() {
         setTitle("TMES - Topological Multimedia Encryption System");
         setSize(900, 600);
@@ -62,17 +70,18 @@ public class TMESGui extends JFrame {
         JScrollPane logScroll = new JScrollPane(logArea);
         add(logScroll, BorderLayout.SOUTH);
 
-        // --- REDIRECT SYSTEM.OUT TO THE TEXT AREA ---
+        // Redirect console output to the internal log panel
         redirectSystemStreams();
 
         // --- ACTION LISTENERS ---
         btnSelectFile.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser(new File(".")); // Open in current dir
+            JFileChooser fileChooser = new JFileChooser(new File("."));
             fileChooser.setFileFilter(new FileNameExtensionFilter("Images", "png", "jpg", "jpeg"));
             if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 selectedInputFile = fileChooser.getSelectedFile();
                 lblFileName.setText(selectedInputFile.getName());
                 logArea.append("Selected file: " + selectedInputFile.getAbsolutePath() + "\n");
+                displayImage(selectedInputFile);
             }
         });
 
@@ -80,6 +89,12 @@ public class TMESGui extends JFrame {
         btnDecrypt.addActionListener(e -> processImage(false));
     }
 
+    /**
+     * Validates user inputs before passing the workload to a background thread.
+     * Prevents UI lockups during complex graph generations and matrix calculations.
+     *
+     * @param isEncrypting True to run encryption, false to run decryption.
+     */
     private void processImage(boolean isEncrypting) {
         String password = passwordField.getText();
         if (selectedInputFile == null || !selectedInputFile.exists()) {
@@ -91,7 +106,6 @@ public class TMESGui extends JFrame {
             return;
         }
 
-        // Run on a separate thread so the GUI doesn't freeze while math is calculating
         new Thread(() -> {
             try {
                 System.out.println("--------------------------------------------------");
@@ -107,12 +121,13 @@ public class TMESGui extends JFrame {
         }).start();
     }
 
-    // --- REFACTORED CORE LOGIC METHODS ---
+    /**
+     * Executes the full encryption pipeline.
+     */
     private void runEncryption(File imgFile, String password) throws IOException {
         System.out.println("[ENCRYPTION MODE]");
         BufferedImage rawImage = ImageIO.read(imgFile);
 
-        // Calling logic from Main
         BufferedImage safeImage = com.tmes.main.Main.forceOpaqueRGB(rawImage);
         BufferedImage sourceImage = com.tmes.main.Main.padToSquare(safeImage);
         int N = sourceImage.getWidth();
@@ -132,11 +147,16 @@ public class TMESGui extends JFrame {
         displayImage(outFile);
     }
 
+    /**
+     * Executes the full decryption pipeline.
+     */
     private void runDecryption(File imgFile, String password) throws IOException {
         System.out.println("[DECRYPTION MODE]");
         BufferedImage rawEncryptedImage = ImageIO.read(imgFile);
-
-        // Calling logic from Main
+        if (rawEncryptedImage.getWidth() != rawEncryptedImage.getHeight()) {
+            System.err.println("ERROR: Invalid file. Encrypted images must be perfectly square.");
+            return; // Kill the process safely before the math starts
+        }
         BufferedImage encryptedImage = com.tmes.main.Main.forceOpaqueRGB(rawEncryptedImage);
         int N = encryptedImage.getWidth();
 
@@ -155,26 +175,31 @@ public class TMESGui extends JFrame {
         displayImage(outFile);
     }
 
-    // Displays the output image in the GUI
+    /**
+     * Loads an image file, dynamically scales it to fit the GUI constraints,
+     * and updates the main display panel.
+     */
     private void displayImage(File file) {
         SwingUtilities.invokeLater(() -> {
             try {
                 BufferedImage img = ImageIO.read(file);
-                // Scale down if image is massive
                 if (img.getWidth() > 800 || img.getHeight() > 400) {
                     Image scaled = img.getScaledInstance(800, -1, Image.SCALE_SMOOTH);
                     imageLabel.setIcon(new ImageIcon(scaled));
                 } else {
                     imageLabel.setIcon(new ImageIcon(img));
                 }
-                imageLabel.setText(""); // clear the placeholder text
+                imageLabel.setText("");
             } catch (IOException e) {
                 System.err.println("Failed to display image in GUI.");
             }
         });
     }
 
-    // --- STREAM REDIRECTION MAGIC ---
+    /**
+     * Captures standard console output (System.out) and error streams (System.err)
+     * and redirects them into the GUI's log text area.
+     */
     private void redirectSystemStreams() {
         OutputStream out = new OutputStream() {
             @Override
@@ -188,7 +213,7 @@ public class TMESGui extends JFrame {
             private void updateTextArea(String text) {
                 SwingUtilities.invokeLater(() -> {
                     logArea.append(text);
-                    logArea.setCaretPosition(logArea.getDocument().getLength()); // auto-scroll
+                    logArea.setCaretPosition(logArea.getDocument().getLength());
                 });
             }
         };
