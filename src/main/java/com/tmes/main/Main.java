@@ -35,7 +35,7 @@ public class Main {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {}
             SwingUtilities.invokeLater(() -> new TMESGui().setVisible(true));
-            return; // Exit the CLI thread
+            return;
         }
 
         System.out.print("Enter your password: ");
@@ -116,8 +116,6 @@ public class Main {
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
     }
 
-    // --- NOW PUBLIC UTILITY METHODS ---
-
     public static int[] deriveKeys(String password) {
         Graph graph = GraphBuilder.buildBaseLayer(password, 4);
         GraphBuilder.addShortcutLayer(graph);
@@ -130,8 +128,9 @@ public class Main {
             throw new RuntimeException("Cryptographic Exception: The provided password lacks structural complexity.");
         }
 
-        Node source = largestSCC.getFirst();
-        Node sink = largestSCC.getLast();
+        // FIXED: Replaced Java 21 methods with backwards-compatible index access
+        Node source = largestSCC.get(0);
+        Node sink = largestSCC.get(largestSCC.size() - 1);
 
         List<List<Node>> disconnectedSccs = new java.util.ArrayList<>();
         for (List<Node> scc : allSccs) {

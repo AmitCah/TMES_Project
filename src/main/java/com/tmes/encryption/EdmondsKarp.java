@@ -81,7 +81,7 @@ public class EdmondsKarp {
                 // Add the flow to the backward edge (enabling the "undo" mechanic for future BFS iterations).
                 int reverseCap = residualGraph.get(curr).get(prev);
                 residualGraph.get(curr).put(prev, reverseCap + pathFlow);
-
+ 
                 curr = prev;
             }
 

@@ -8,7 +8,7 @@ import java.util.List;
  * cryptographic confusion properties based on the user's password.
  */
 public class GraphBuilder {
-
+    /// APPLE, k=3 APP-PPL-PLE
     public static Graph buildBaseLayer(String password, int k) {
         Graph graph = getGraph(password, k);
         List<Node> nodes = graph.getNodes();
