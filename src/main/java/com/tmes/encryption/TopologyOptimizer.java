@@ -30,8 +30,7 @@ public class TopologyOptimizer {
      * @return The structurally optimized Graph.
      * Complexity: O(V * E^2)
      */
-    public static Graph optimize(Graph graph, Node source, Node sink, int sccSize, List<List<Node>> disconnectedSccs) {
-        System.out.println("\n--- Starting Topology Optimization ---");
+    public static int[] optimize(Graph graph, Node source, Node sink, int sccSize, List<List<Node>> disconnectedSccs) {        System.out.println("\n--- Starting Topology Optimization ---");
 
         FlowResult currentFlow = EdmondsKarp.compute(graph, source, sink);
         int bestP = currentFlow.maxFlow;
@@ -163,7 +162,7 @@ public class TopologyOptimizer {
         }
 
         System.out.println("--- Optimization Complete ---\n");
-        return graph;
+        return new int[]{bestP, bestQ, bestK}; // Return the synchronized keys;
     }
 
     /** Calculates the K parameter based on core topology size and flow capacity. */

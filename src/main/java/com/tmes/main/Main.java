@@ -180,14 +180,10 @@ public class Main {
             }
         }
 
-        graph = TopologyOptimizer.optimize(graph, source, sink, largestSCC.size(), disconnectedSccs);
+        // The optimizer mutates the graph in-place and returns the final synchronized keys.
+        int[] finalKeys = TopologyOptimizer.optimize(graph, source, sink, largestSCC.size(), disconnectedSccs);
 
-        FlowResult flow = EdmondsKarp.compute(graph, source, sink);
-        int P = flow.maxFlow;
-        int Q = EdmondsKarp.calculateMinCutHash(flow.minCutEdges);
-        int K = (largestSCC.size() + P) % 20 + 5;
-
-        return new int[]{P, Q, K};
+        return finalKeys;
     }
 
     /**
@@ -201,11 +197,17 @@ public class Main {
     public static BufferedImage padToSquare(BufferedImage img) {
         int w = img.getWidth();
         int h = img.getHeight();
+
+        // 1. Find the longest side
         int maxDim = Math.max(w, h);
+
+        // 2. CRYPTOGRAPHIC PADDING: Enforce a minimum dimension of 128
+        maxDim = Math.max(maxDim, 128);
 
         BufferedImage squareImg = new BufferedImage(maxDim, maxDim, BufferedImage.TYPE_INT_RGB);
         java.awt.Graphics2D g2d = squareImg.createGraphics();
 
+        // Center the original image inside the new, safe-sized matrix
         int x = (maxDim - w) / 2;
         int y = (maxDim - h) / 2;
 
@@ -214,7 +216,6 @@ public class Main {
 
         return squareImg;
     }
-
     /**
      * Strips the Alpha (transparency) channel from an image.
      * Transparent pixels can cause XOR masking algorithms to output invisible data,
