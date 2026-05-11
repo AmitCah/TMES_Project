@@ -36,7 +36,6 @@ public class TopologyOptimizer {
         FlowResult currentFlow = EdmondsKarp.compute(graph, source, sink);
         int bestP = currentFlow.maxFlow;
         int bestQ = EdmondsKarp.calculateMinCutHash(currentFlow.minCutEdges);
-
         int currentCoreSize = sccSize;
         int bestK = calculateK(currentCoreSize, bestP);
 

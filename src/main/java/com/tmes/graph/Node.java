@@ -32,12 +32,23 @@ public class Node {
 
     /**
      * Creates a new directional edge from this node to a destination node.
-     * The new edge is added to the outgoingEdges list.
+     * Prevents duplicate edges by overwriting the weight if the connection already exists.
      * @param destination The target node of the edge.
      * @param weight The capacity or weight of the edge.
-     * Complexity: O(1)
+     * Complexity: O(1) (Bounded by max alphabet out-degree)
      */
     public void addEdge(Node destination, int weight) {
+        // 1. Check for an existing edge to the same destination
+        for (Edge existingEdge : this.outgoingEdges) {
+            if (existingEdge.getDestination().equals(destination)) {
+                // 2. Collision detected. Overwrite the weight.
+                // This ensures the Shortcut Layer can still overwrite the Base Layer.
+                existingEdge.setWeight(weight);
+                return; // 3. Exit early to prevent duplication
+            }
+        }
+
+        // 4. No duplicate found. Safely add the new edge.
         Edge newEdge = new Edge(this, destination, weight);
         this.outgoingEdges.add(newEdge);
     }

@@ -10,29 +10,28 @@ import java.util.List;
 public class GraphBuilder {
     /// APPLE, k=3 APP-PPL-PLE
     public static Graph buildBaseLayer(String password, int k) {
-        Graph graph = getGraph(password, k);
-        List<Node> nodes = graph.getNodes();
-
-        // Connect nodes sequentially to ensure a continuous baseline flow before optimization.
-        for (int i = 0; i < nodes.size() - 1; i++) {
-            Node current = nodes.get(i);
-            Node next = nodes.get(i + 1);
-            current.addEdge(next, 1);
-        }
-        return graph;
+        // The sequential connection loop is removed. Connection now happens directly during generation.
+        return getGraph(password, k);
     }
 
     private static Graph getGraph(String password, int k) {
         Graph graph = new Graph();
-
-        // Strict validation: Prevent StringIndexOutOfBoundsException during K-mer extraction or math logic later.
         if (k < 2 || password.length() < k) {
             throw new IllegalArgumentException("Invalid input: password too short or k is strictly less than 2.");
         }
 
+        Node previousNode = null;
         for (int i = 0; i <= password.length() - k; i++) {
             String sub = password.substring(i, i + k);
-            graph.createNode(sub);
+
+            // This guarantees a true De Bruijn topology by enforcing uniqueness.
+            Node currentNode = graph.getOrCreateNode(sub);
+
+            // Connect the overlap: The previous K-mer's suffix is the current K-mer's prefix.
+            if (previousNode != null) {
+                previousNode.addEdge(currentNode, 1);
+            }
+            previousNode = currentNode;
         }
         return graph;
     }

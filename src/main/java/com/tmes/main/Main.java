@@ -11,9 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
-
 /**
- * The central orchestrator and entry point for the Topological Multimedia Encryption System (TMES).
+ * The Entry point for the Topological Multimedia Encryption System (TMES).
  * This class routes the user to either the Command Line Interface (CLI) or the Graphical User Interface (GUI).
  * It also serves as the main coordinator for the cryptographic pipeline, connecting the graph topology
  * generation, key derivation, and image processing modules.
@@ -33,7 +32,6 @@ public class Main {
         System.out.println("- Passwords must be at least 8 characters long.");
         System.out.println("- Passwords must be in English characters.");
         System.out.println("- Passwords must contain a diverse mix of characters to ensure a secure topology.\n");
-
         System.out.println("Select operation:");
         System.out.println("1. Run CLI Encryption");
         System.out.println("2. Run CLI Decryption");
@@ -153,7 +151,7 @@ public class Main {
 
     /**
      * Translates a user password into actionable cryptographic parameters (P, Q, and K).
-     * Builds a De Bruijn-inspired graph, isolates the most robust Strongly Connected Component (SCC),
+     * Builds a De Bruijn inspired graph, isolates the most robust Strongly Connected Component (SCC),
      * optimizes the topology, and calculates network flow metrics.
      *
      * @param password The user's raw text password.
@@ -172,8 +170,8 @@ public class Main {
             throw new RuntimeException("Cryptographic Exception: The provided password lacks structural complexity.");
         }
 
-        Node source = largestSCC.get(0);
-        Node sink = largestSCC.get(largestSCC.size() - 1);
+        Node source = largestSCC.getFirst();
+        Node sink = largestSCC.getLast();
 
         List<List<Node>> disconnectedSccs = new java.util.ArrayList<>();
         for (List<Node> scc : allSccs) {

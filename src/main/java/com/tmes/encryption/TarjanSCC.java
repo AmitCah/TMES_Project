@@ -12,8 +12,9 @@ import java.util.*;
  * to ensure encryption keys are derived from complex, interconnected sub-structures.
  */
 public class TarjanSCC {
+    static final int UNVISITED = -1;
+
     private int idCounter;
-    private int sccCount;
 
     private int[] ids;
     private int[] low;
@@ -30,10 +31,8 @@ public class TarjanSCC {
         this.onStack = new boolean[n];
         this.stack = new ArrayDeque<>();
 
-        // -1 signifies an unvisited node.
-        Arrays.fill(ids, -1);
+        Arrays.fill(ids, UNVISITED);
         this.idCounter = 0;
-        this.sccCount = 0;
     }
 
     public List<List<Node>> run() {
@@ -42,7 +41,7 @@ public class TarjanSCC {
 
         // Loop through all nodes to ensure we don't miss disconnected graph components.
         for (int i = 0; i < nodes.size(); i++) {
-            if (ids[i] == -1) {
+            if (ids[i] == UNVISITED) {
                 dfs(i, sccs);
             }
         }
@@ -58,7 +57,7 @@ public class TarjanSCC {
         for (Edge edge : node.getEdges()) {
             int to = edge.getDestination().getId();
 
-            if (ids[to] == -1) {
+            if (ids[to] == UNVISITED) {
                 // Case 1: Unvisited node. We recurse deeper into the DFS tree.
                 dfs(to, sccs);
                 // Upon returning, we propagate the lowest reachable ID (low link) upwards.
@@ -83,13 +82,12 @@ public class TarjanSCC {
             } while (nodeIndex != at);
 
             sccs.add(currentSCC);
-            sccCount++;
         }
     }
 
     public static List<Node> getLargestSCC(List<List<Node>> allSccs) {
         if (allSccs.isEmpty()) return new ArrayList<>();
-        List<Node> largest = allSccs.get(0);
+        List<Node> largest = allSccs.getFirst();
         for (List<Node> scc : allSccs) {
             if (scc.size() > largest.size()) {
                 largest = scc;

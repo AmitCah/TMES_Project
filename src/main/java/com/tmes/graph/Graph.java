@@ -1,7 +1,9 @@
 package com.tmes.graph;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents the topological structure of the encryption system.
@@ -13,6 +15,7 @@ public class Graph {
 
     /** A sequential list containing all nodes. A node's index in this list corresponds to its unique ID. */
     private final List<Node> nodes;
+    private final Map<String, Node> nodeMap;
 
     /**
      * Constructs a new, empty graph.
@@ -20,6 +23,7 @@ public class Graph {
      */
     public Graph() {
         this.nodes = new ArrayList<>();
+        this.nodeMap = new HashMap<>();
     }
 
     /**
@@ -28,9 +32,13 @@ public class Graph {
      * Complexity: O(1)
      * @param data The K-mer string for the new node.
      */
-    public void createNode(String data) {
-        Node newNode = new Node(nodes.size(), data);
-        nodes.add(newNode);
+    public Node getOrCreateNode(String data) {
+        if (!nodeMap.containsKey(data)) {
+            Node newNode = new Node(nodes.size(), data);
+            nodes.add(newNode);
+            nodeMap.put(data, newNode);
+        }
+        return nodeMap.get(data);
     }
 
     /**
