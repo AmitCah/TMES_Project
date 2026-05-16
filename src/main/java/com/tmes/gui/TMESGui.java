@@ -55,13 +55,23 @@ public class TMESGui extends JFrame {
         controlPanel.add(btnEncrypt);
         controlPanel.add(btnDecrypt);
 
-        // --- DEBUG: Auto-fill Password ---
+        // --- DEBUG: Auto-fill Password with Dynamic Length ---
+        controlPanel.add(new JLabel("Password length:"));
+
+        // JSpinner allows you to select a length. Default: 16, Min: 8, Max: 128, Step: 1
+        JSpinner passLengthSpinner = new JSpinner(new SpinnerNumberModel(16, 8, 128, 1));
+
+        // Lock the spinner's text box size so it doesn't stretch the UI
+        passLengthSpinner.setPreferredSize(new Dimension(50, 25));
+        controlPanel.add(passLengthSpinner);
+
         JButton btnDebugPass = new JButton("Gen Pass");
         controlPanel.add(btnDebugPass);
 
         btnDebugPass.addActionListener(e -> {
-            // Generate a 12-character password and inject it into the text box
-            passwordField.setText(PasswordGen.genPassword(12));
+            // Extract the requested length from the spinner and generate the password
+            int requestedLength = (Integer) passLengthSpinner.getValue();
+            passwordField.setText(PasswordGen.genPassword(requestedLength));
         });
 
         add(controlPanel, BorderLayout.NORTH);
@@ -154,7 +164,7 @@ public class TMESGui extends JFrame {
         ImageIO.write(encrypted, "png", outFile);
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
 
-        displayImage(outFile);
+        SwingUtilities.invokeLater(() -> displayImage(outFile));
     }
 
     /**
@@ -182,15 +192,13 @@ public class TMESGui extends JFrame {
         ImageIO.write(decrypted, "png", outFile);
         System.out.println("Done in " + time + "ms. Saved to: " + outFile.getAbsolutePath());
 
-        displayImage(outFile);
+        SwingUtilities.invokeLater(() -> displayImage(outFile));
     }
-
     /**
      * Loads an image file, dynamically scales it to fit the GUI constraints,
      * and updates the main display panel.
      */
     private void displayImage(File file) {
-        SwingUtilities.invokeLater(() -> {
             try {
                 BufferedImage img = ImageIO.read(file);
                 if (img.getWidth() > 800 || img.getHeight() > 400) {
@@ -203,7 +211,6 @@ public class TMESGui extends JFrame {
             } catch (IOException e) {
                 System.err.println("Failed to display image in GUI.");
             }
-        });
     }
 
     /**

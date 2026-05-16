@@ -190,7 +190,8 @@ public class EdmondsKarp {
      * Iterates through the cut edges and performs an XOR sum on their string data.
      * @param minCutEdges The collection of edges forming the minimum cut.
      * @return The integer hash representing the Q parameter.
-     * Complexity: O(C * L) where C is cut size and L is string length.
+     * Complexity: O(C log L) where C is the size of the minimum cut and L is the password length,
+     * as the inner XOR loop scales dynamically with the logarithmic K-mer window.
      */
     public static int calculateMinCutHash(Collection<Edge> minCutEdges) {
         int q = 0;

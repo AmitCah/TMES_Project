@@ -15,8 +15,13 @@ public class Graph {
 
     /** A sequential list containing all nodes. A node's index in this list corresponds to its unique ID. */
     private final List<Node> nodes;
+    /**
+     * A dictionary mapping a K-mer string to its physical Node object in memory.
+     * This enforces node uniqueness in O(1) time complexity, which is mathematically
+     * required to fold the password into a valid De Bruijn graph topology rather
+     * than a straight line.
+     */
     private final Map<String, Node> nodeMap;
-
     /**
      * Constructs a new, empty graph.
      * Initializes the underlying ArrayList for nodes.

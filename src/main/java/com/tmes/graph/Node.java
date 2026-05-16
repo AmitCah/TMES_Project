@@ -35,7 +35,7 @@ public class Node {
      * Prevents duplicate edges by overwriting the weight if the connection already exists.
      * @param destination The target node of the edge.
      * @param weight The capacity or weight of the edge.
-     * Complexity: O(1) (Bounded by max alphabet out-degree)
+     * Complexity: O(M) where M is the number of outgoing edges from this node.
      */
     public void addEdge(Node destination, int weight) {
         // 1. Check for an existing edge to the same destination
@@ -89,5 +89,15 @@ public class Node {
      */
     public int getId() {
         return id;
+    }
+
+    /**
+     * Computes a hash code based on the unique node ID.
+     * Required for O(1) lookups in HashMaps and HashSets.
+     * Complexity: O(1)
+     */
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
     }
 }

@@ -8,18 +8,25 @@ import java.util.List;
  * cryptographic confusion properties based on the user's password.
  */
 public class GraphBuilder {
-    /// APPLE, k=3 APP-PPL-PLE
-    public static Graph buildBaseLayer(String password, int k) {
-        // The sequential connection loop is removed. Connection now happens directly during generation.
-        return getGraph(password, k);
-    }
 
-    private static Graph getGraph(String password, int k) {
+    /**
+     * Builds the foundational linear layer of the graph by extracting K-mers from the password,
+     * enforcing node uniqueness, and sequentially connecting the overlapping K-mers.
+     * Example: For password "APPLE" and k=3, it extracts "APP", "PPL", "PLE".
+     *
+     * Complexity: O(L log L) where L is the length of the password string, as the K-mer window scales logarithmically.
+     *
+     * @param password The raw password string used as the topological seed.
+     * @param k        The K-mer window size.
+     * @return The instantiated Graph with connected base nodes.
+     * @throws IllegalArgumentException If the password is too short or K is less than 2.
+     */
+    public static Graph buildBaseLayer(String password, int k) {
         Graph graph = new Graph();
         if (k < 2 || password.length() < k) {
             throw new IllegalArgumentException("Invalid input: password too short or k is strictly less than 2.");
         }
-
+        System.out.println("K-mer length="+k);
         Node previousNode = null;
         for (int i = 0; i <= password.length() - k; i++) {
             String sub = password.substring(i, i + k);
@@ -36,6 +43,15 @@ public class GraphBuilder {
         return graph;
     }
 
+    /**
+     * Injects deterministic, non-linear bypass edges (shortcuts) into the graph topology.
+     * This destroys the linearity of the base layer, creating the necessary chaos and
+     * bottlenecks required for the Edmonds-Karp min-cut hash.
+     *
+     * Complexity: O(V) where V is the number of unique nodes in the graph.
+     *
+     * @param graph The initialized base layer graph to be mutated.
+     */
     public static void addShortcutLayer(Graph graph) {
         List<Node> nodes = graph.getNodes();
         int N = nodes.size();
@@ -48,6 +64,7 @@ public class GraphBuilder {
 
             // The Project Formula: Creates a deterministic but chaotic jump.
             // We use modulo N to ensure the target index safely wraps around the graph's bounds.
+            // A long is used to defend against overflow when dealing with high Unicode characters.
             long targetIndexLong = ((long) c1 * c2 + index) % N;
             int targetIndex = (int) targetIndexLong;
 
